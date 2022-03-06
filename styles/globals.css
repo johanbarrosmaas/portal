@@ -1,3 +1,39 @@
 @import 'primereact/resources/themes/md-light-indigo/theme.css';
 @import 'primereact/resources/primereact.min.css';
 @import 'primeicons/primeicons.css';
+
+body {
+    margin: 0;
+}
+
+.header {
+    color: #fff;
+    background-color: #f0f0f0;
+    width: 100vw;
+    height: 5vh;
+    align-items: center;
+    justify-items: center;
+    align-content: center;
+    justify-content: center;
+}
+
+.header li {
+    list-style: none;
+}
+
+.header a {
+    color: #fff;
+}
+
+.logo-global {
+    display: block;
+    height: 100%;
+    width: 40px;
+}
+
+.logo-global img {
+    display: block;
+    height: 90%;
+    margin: auto;
+    padding-block: 2px;
+}

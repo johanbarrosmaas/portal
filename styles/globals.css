@@ -2,19 +2,39 @@
 @import 'primereact/resources/primereact.min.css';
 @import 'primeicons/primeicons.css';
 
+:root {
+    font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+}
+
 body {
     margin: 0;
 }
 
+label {
+    padding-top: 2px;
+}
+
 .header {
     color: #fff;
-    background-color: #f0f0f0;
+    background-color: #126c46;
     width: 100vw;
-    height: 5vh;
+    height: 60px;
     align-items: center;
     justify-items: center;
     align-content: center;
     justify-content: center;
+}
+
+.footer {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    align-content: center;
+    justify-content: center;
+    background-color: #126c46;
+    bottom: 0;
+    height: 60px;
+    width: 100vw;
 }
 
 .header li {
@@ -35,5 +55,11 @@ body {
     display: block;
     height: 90%;
     margin: auto;
-    padding-block: 2px;
+    padding-left: 13px;
+    padding-block: 14px;
+}
+
+.safe-margins {
+    padding-left: 10px;
+    padding-right: 10px;
 }

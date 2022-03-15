@@ -8,12 +8,5 @@ function redirect404(url: NextURL) {
 
 export default function middleware(req: NextRequest) {
     const url = req.nextUrl;
-
-    if (url.pathname.includes('lista')) {
-        if (!url.searchParams.has('token')) return redirect404(url);
-        const token = url.searchParams.get('token');
-        if (token == null) return redirect404(url);
-    
-        if (token !== 'kt5rWstx') return redirect404(url);
-    }
+    let token = url.searchParams.get('token');
 }

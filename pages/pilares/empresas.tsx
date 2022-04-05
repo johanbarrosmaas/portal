@@ -35,7 +35,7 @@ function Empresas(props: any) {
     const [selectedRegistros, setSelectedRegistros] = useState(new Array());
     const [submitted, setSubmitted] = useState(false);
     const [globalFilter, setGlobalFilter] = useState(null);
-    const toast = useRef(null);
+    const toast = useRef({} as Toast);
     const dt = useRef({} as DataTable);
 
     useEffect(() => {
@@ -101,11 +101,11 @@ function Empresas(props: any) {
                             const index = findIndexById(registro.id);
             
                             _registros[index] = _registro;
-                            //toast.current.show({ severity: 'success', summary: 'Successful', detail: 'Product Updated', life: 3000 });
+                            toast?.current?.show({ severity: 'success', summary: 'Sucesso', detail: 'Empresa atualizada', life: 3000 });
                         }
                         else {
                             _registros.push(_registro);
-                            //toast.current.show({ severity: 'success', summary: 'Successful', detail: 'Product Created', life: 3000 });
+                            toast?.current?.show({ severity: 'success', summary: 'Sucesso', detail: 'Empresa criada', life: 3000 });
                         }
             
                         setRegistroDialog(false);
@@ -196,7 +196,7 @@ function Empresas(props: any) {
     const leftToolbarTemplate = () => {
         return (
             <React.Fragment>
-                <Button label="Novo" icon="pi pi-plus" className="p-button-success p-mr-2" onClick={openNew} />
+                <Button label="Nova Empresa" icon="pi pi-plus" className="p-button-success p-mr-2" onClick={openNew} />
             </React.Fragment>
         )
     }
@@ -237,7 +237,7 @@ function Empresas(props: any) {
     }
 
     const header = (
-        <div className="table-header">
+        <div className="table-header" style={{display: 'flex', flexDirection: 'row'}}>
             <span className="p-input-icon-left">
                 <i className="pi pi-search" />
                 <InputText type="search" onInput={(e: any) => setGlobalFilter(e.currentTarget.value)} placeholder="Pesquisa..." />
@@ -247,15 +247,15 @@ function Empresas(props: any) {
 
     const registroDialogFooter = (
         <>
-            <Button label="Cancel" icon="pi pi-times" className="p-button-text" onClick={hideDialog} />
-            <Button label="Save" icon="pi pi-check" className="p-button-text" onClick={saveRegistro} />
+            <Button label="Cancelar" icon="pi pi-times" className="p-button-text" onClick={hideDialog} />
+            <Button label="Salvar" icon="pi pi-check" className="p-button-text" onClick={saveRegistro} />
         </>
     );
 
     const filialDialogFooter = (
         <>
-            <Button label="Cancel" icon="pi pi-times" className="p-button-text" onClick={hideFilialDialog} />
-            <Button label="Save" icon="pi pi-check" className="p-button-text" onClick={saveFilial} />
+            <Button label="Cancelar" icon="pi pi-times" className="p-button-text" onClick={hideFilialDialog} />
+            <Button label="Salvar" icon="pi pi-check" className="p-button-text" onClick={saveFilial} />
         </>
     );
 

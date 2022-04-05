@@ -79,7 +79,7 @@ function Protocolos(props: any) {
     const [selectedProtocolos, setSelectedProtocolos] = useState(new Array());
     const [submitted, setSubmitted] = useState(false);
     const [globalFilter, setGlobalFilter] = useState(null);
-    const toast = useRef(null);
+    const toast = useRef({} as Toast);
     const dt = useRef({} as DataTable);
 
     useEffect(() => {
@@ -172,7 +172,7 @@ function Protocolos(props: any) {
             if (!(session.user?.email == null)) protSave['owner'] = session.user?.email;
         }
 
-        const body = JSON.stringify(protocolo);
+        const body = JSON.stringify(protSave);
         fetch('/api/protocolos', {
             method: 'POST',
             headers: {
@@ -191,12 +191,12 @@ function Protocolos(props: any) {
                         const index = findIndexById(protocolo.controle);
         
                         _protocolos[index] = _protocolo;
-                        //toast.current.show({ severity: 'success', summary: 'Successful', detail: 'Product Updated', life: 3000 });
+                        toast.current.show({ severity: 'success', summary: 'Sucesso', detail: 'Protocolo salvo', life: 3000 });
                     }
                     else {
                         _protocolo.controle = createId();
                         _protocolos.push(_protocolo);
-                        //toast.current.show({ severity: 'success', summary: 'Successful', detail: 'Product Created', life: 3000 });
+                        toast.current.show({ severity: 'success', summary: 'Sucesso', detail: 'Protocolo criado', life: 3000 });
                     }
                     setProtocolos(_protocolos);
                     setProtocoloDialog(false);

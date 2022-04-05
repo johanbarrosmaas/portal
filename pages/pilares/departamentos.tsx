@@ -30,7 +30,7 @@ function Departamentos(props: any) {
     const [selectedRegistros, setSelectedRegistros] = useState(new Array());
     const [submitted, setSubmitted] = useState(false);
     const [globalFilter, setGlobalFilter] = useState(null);
-    const toast = useRef(null);
+    const toast = useRef({} as Toast);
     const dt = useRef({} as DataTable);
 
     useEffect(() => {
@@ -75,7 +75,7 @@ function Departamentos(props: any) {
         setSubmitted(true);
         let registroToSave = {...registro};
         
-        const body = JSON.stringify(registro);
+        const body = JSON.stringify(registroToSave);
 
         fetch('/api/pilares/departamentos', {
             method: 'POST',
@@ -93,15 +93,16 @@ function Departamentos(props: any) {
                             const index = findIndexById(registro.id);
             
                             _registros[index] = _registro;
-                            //toast.current.show({ severity: 'success', summary: 'Successful', detail: 'Product Updated', life: 3000 });
+                            toast.current.show({ severity: 'success', summary: 'Sucesso', detail: 'Setor cadastrado', life: 3000 });
                         }
                         else {
                             _registros.push(_registro);
-                            //toast.current.show({ severity: 'success', summary: 'Successful', detail: 'Product Created', life: 3000 });
+                            toast.current.show({ severity: 'success', summary: 'Sucesso', detail: 'Setor criado', life: 3000 });
                         }
             
                         setRegistroDialog(false);
                         setRegistro(registroVazio);
+                        setRegistros(_registros);
                 }).catch(reason => {
                     console.error('JsonFetch', [reason]);
                 });
@@ -121,7 +122,7 @@ function Departamentos(props: any) {
         let index = -1;
         
         for (let i = 0; i < registros.length; i++) {
-            if (registros[i].id === id) {
+            if (registros[i]?.id === id) {
                 index = i;
                 break;
             }
@@ -153,7 +154,7 @@ function Departamentos(props: any) {
     const leftToolbarTemplate = () => {
         return (
             <React.Fragment>
-                <Button label="Novo" icon="pi pi-plus" className="p-button-success p-mr-2" onClick={openNew} />
+                <Button label="Novo Setor" icon="pi pi-plus" className="p-button-success p-mr-2" onClick={openNew} />
             </React.Fragment>
         )
     }
@@ -203,8 +204,8 @@ function Departamentos(props: any) {
 
     const registroDialogFooter = (
         <>
-            <Button label="Cancel" icon="pi pi-times" className="p-button-text" onClick={hideDialog} />
-            <Button label="Save" icon="pi pi-check" className="p-button-text" onClick={saveRegistro} />
+            <Button label="Cancelar" icon="pi pi-times" className="p-button-text" onClick={hideDialog} />
+            <Button label="Salvar" icon="pi pi-check" className="p-button-text" onClick={saveRegistro} />
         </>
     );
 

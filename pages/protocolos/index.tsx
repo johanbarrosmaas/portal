@@ -11,54 +11,67 @@ import { Toolbar } from 'primereact/toolbar';
 import { Dropdown, DropdownChangeParams } from 'primereact/dropdown';
 import { Dialog } from 'primereact/dialog';
 import { InputText } from 'primereact/inputtext';
+import { InputNumber } from 'primereact/inputnumber';
 
-import { Protocolo } from '../../client/models/protocolo';
-import { Usuario } from '../../client/models/usuario';
-import { Departamento, Empresa } from '../../client/models/pilares';
-import { Arquivo } from '../../client/models/arquivo';
-
+import { Protocolo, protocoloExample } from '../../client/models/protocolo';
+import { Departamento, Empresa, Filial } from '../../client/models/pilares';
+import { getParsedDate } from '../../lib/helpers/date.util';
+import { Header } from '../../lib/components/header';
+import { useAuth, getToken } from '../../lib/context/auth';
 
 function Protocolos(props: any) {
+    const session = useAuth();
 
-    let emptyProtocolo = {
-        controle: '',
-        dt_registro: new Date(),
-        dt_utlima_ocorrencia: new Date(),
-        empresa: {} as Empresa,
-        departamento: {} as Departamento,
-        interessados: new Array<Usuario>(),
-        origem: '',
-        processo: undefined,
-        arquivos: new Array<Arquivo>()
+
+    const emptyProtocolo = {
+        ...protocoloExample,
+        owner: session.user?.email
     } as Protocolo;
-
-    let protocolosBase = [
-        { controle: '20211210', dt_registro: new Date('2021-12-10'), origem: '00.000.000/0001-00', empresa: 'bioma', departamento: 'Compras' },
-        { controle: '20220205', dt_registro: new Date('2022-02-05'), origem: '00.000.000/0005-00', empresa: 'simbiose', departamento: 'Compras' },
-        { controle: '20220222', dt_registro: new Date('2022-02-22'), origem: '00.000.000/0003-00', empresa: 'biagro', departamento: 'Vendas' },
-        { controle: '20220307', dt_registro: new Date('2022-03-07'), origem: '00.000.000/0010-00', empresa: 'biagro', departamento: 'Compras' },
-    ]
 
     let filesToUpload = new Array();
 
-    const empresas = [
-      { label: "Alado", value: "alado" },
-      { label: "Biagro", value: "biagro" },
-      { label: "Bioma", value: "bioma" },
-      { label: "Biograss", value: "biograss" },
-      { label: "Simbiose", value: "simbiose" },
-      { label: "Simbiose Jet", value: "simbiose-jet" },
-    ];
 
-    const departamentos = [
-        { label: "Compras", value: "compras" },
-        { label: "Vendas", value: "vendas" },
-        { label: "Financeiro", value: "financeiro" },
+    const situacoesBase = [
+        { label: "Rascunho", value: "rascunho", publico: true },
+        { label: "Status de aprovação", value: "status-de-aprovacao", publico: true },
+        { label: "Informações Pendentes", value: "informacoes-pendentes", publico: false },
+        { label: "Pendência Interna", value: "pendencia-interna", publico: false },
+        { label: "Aprovado", value: "aprovado", publico: false },
     ]
 
+    const departamentosExample = [
+        { label: "01 - Logistica", value: "1" },
+        { label: "02 - Frota", value: "2" },
+        { label: "03 - Regulatório", value: "3" },
+        { label: "04 - Financeiro", value: "4" },
+        { label: "05 - Adm de Vendas", value: "5" },
+        { label: "06 - RH", value: "6" },
+        { label: "07 - Compras", value: "7" },
+        { label: "08 - P&D", value: "8" },
+        { label: "09 - Juridico", value: "9" },
+        { label: "10 - Marketing", value: "10" },
+        { label: "11 - Filiais", value: "11" },
+        { label: "12 - TI", value: "12" },
+        { label: "13 - Aeronaves", value: "13" },
+    ]
+
+    const processos = [
+        { label: "NF Serviço", value: "nf_servico" },
+        { label: "NF Produto", value: "nf_produto" },
+        { label: "Fatura/Boleto", value: "fatura" },
+        { label: "Taxas", value: "taxas" },
+        { label: "Contrato", value: "contrato" },
+        { label: "Laudo", value: "laudo" }
+    ]
+
+    const [token, setToken] = useState('');
     const [protocolos, setProtocolos] = useState(new Array());
+    const [empresas, setEmpresas] = useState(new Array());
+    const [departamentos, setDepartamentos] = useState(new Array());
     const [protocolo, setProtocolo] = useState(emptyProtocolo);
     const [protocoloDialog, setProtocoloDialog] = useState(false);
+    const [status, setStatus] = useState('rascunho');
+    const [statusDialog, setStatusDialog] = useState(false);
     
     const [deleteProtocoloDialog, setDeleteProtocoloDialog] = useState(false);
     const [deleteProtocolosDialog, setDeleteProtocolosDialog] = useState(false);
@@ -70,11 +83,53 @@ function Protocolos(props: any) {
     const dt = useRef({} as DataTable);
 
     useEffect(() => {
-        //const productService = new ProductService();
-        //productService.getProducts().then(data => setProducts(data));
-
-        setProtocolos(protocolosBase)
+        const token = getToken();
+        if (token) {
+            fetch('/api/protocolos', {
+                headers: {
+                    authorization: `Bearer ${token}`
+                }
+            }).then(res => {
+                res.json().then(data => {
+                    if (data instanceof Array) {
+                        setProtocolos(data);
+                    }
+                })
+            });
+    
+            fetch('/api/pilares/empresas', {
+                headers: {
+                    authorization: `Bearer ${token}`
+                }
+            }).then(res => {
+                res.json().then((data: Array<Empresa>) => {
+                    if (data instanceof Array) {
+                        setEmpresas(data.map((record) => {
+                            return { label: record.razao, value: record.apelido, filiais: record.filiais };
+                        }));
+                    }
+                })
+            });
+    
+            fetch('/api/pilares/departamentos', {
+                headers: {
+                    authorization: `Bearer ${token}`
+                }
+            }).then(res => {
+                res.json().then((data: Array<Departamento>) => {
+                    if (data instanceof Array) {
+                        setDepartamentos(data.map((record) => {
+                            return { label: record.nome, value: record.id };
+                        }));
+                    }
+                })
+            });
+        }
     }, []);
+
+    if (!session) return (<></>);
+
+    const situacoesUsuario = situacoesBase.filter(situacao => situacao.publico);
 
     const openNew = () => {
         setProtocolo(emptyProtocolo);
@@ -87,6 +142,11 @@ function Protocolos(props: any) {
         setProtocoloDialog(false);
     }
 
+    const hideStatusDialog = () => {
+        setSubmitted(false);
+        setStatusDialog(false);
+    }
+
     const hideDeleteProtocoloDialog = () => {
         setDeleteProtocoloDialog(false);
     }
@@ -95,28 +155,59 @@ function Protocolos(props: any) {
         setDeleteProtocolosDialog(false);
     }
 
+    const saveStatus = () => {
+        if (!(status == null)) protocolo.situacao = status;
+        setProtocolo(protocolo);
+        saveProtocolo();
+        setStatus('rascunho');
+        setStatusDialog(false);
+    }
+
     const saveProtocolo = () => {
         setSubmitted(true);
+        let protSave = {...protocolo};
+        
 
-        if (protocolo.arquivos instanceof Array && protocolo.arquivos.length > 0) {
-            let _protocolos = [...protocolos];
-            let _protocolo = { ...protocolo };
-            if (protocolo.controle) {
-                const index = findIndexById(protocolo.controle);
-
-                _protocolos[index] = _protocolo;
-                //toast.current.show({ severity: 'success', summary: 'Successful', detail: 'Product Updated', life: 3000 });
-            }
-            else {
-                _protocolo.controle = createId();
-                _protocolos.push(_protocolo);
-                //toast.current.show({ severity: 'success', summary: 'Successful', detail: 'Product Created', life: 3000 });
-            }
-
-            setProtocolos(_protocolos);
-            setProtocoloDialog(false);
-            setProtocolo(emptyProtocolo);
+        if (protSave.owner == null) {
+            if (!(session.user?.email == null)) protSave['owner'] = session.user?.email;
         }
+
+        const body = JSON.stringify(protocolo);
+        fetch('/api/protocolos', {
+            method: 'POST',
+            headers: {
+                authorization: `Bearer ${getToken()}`
+            }, 
+            body
+        }).then(res => {
+            if (res.ok) {
+                res.json().then(data => {
+                    protSave = data;
+                    
+                    let _protocolos = [...protocolos];
+                    let _protocolo = { ...protSave };
+        
+                    if (protocolo.controle) {
+                        const index = findIndexById(protocolo.controle);
+        
+                        _protocolos[index] = _protocolo;
+                        //toast.current.show({ severity: 'success', summary: 'Successful', detail: 'Product Updated', life: 3000 });
+                    }
+                    else {
+                        _protocolo.controle = createId();
+                        _protocolos.push(_protocolo);
+                        //toast.current.show({ severity: 'success', summary: 'Successful', detail: 'Product Created', life: 3000 });
+                    }
+                    setProtocolos(_protocolos);
+                    setProtocoloDialog(false);
+                    setProtocolo(emptyProtocolo);
+                }).catch(reason => {
+                    console.error('JsonFetch', [reason]);
+                });
+            }
+        }).catch(reason => {
+            console.error('CatchFetch', [reason]);
+        });
     }
 
     const editProtocolo = (protocolo: Protocolo) => {
@@ -133,17 +224,17 @@ function Protocolos(props: any) {
         //toast.current.show({ severity: 'success', summary: 'Não autorizado', detail: 'Não é possível excluir protocolo com arquivo carregado! Necessário registrar cancelamento ou rejeição!', life: 3000 });
     }
 
-    const findIndexById = (controle: string) => {
+    const findIndexById = (id: string) => {
         
         let index = -1;
-        /*
-        for (let i = 0; i < products.length; i++) {
-            if (products[i].id === id) {
+        
+        for (let i = 0; i < protocolos.length; i++) {
+            if (protocolos[i].id === id) {
                 index = i;
                 break;
             }
         }
-        */
+
         return index;
     }
 
@@ -176,25 +267,96 @@ function Protocolos(props: any) {
         //toast.current.show({ severity: 'success', summary: 'Successful', detail: 'Products Deleted', life: 3000 });
     }
 
-    const onEmpresaChange = (e: DropdownChangeParams) => {
-        console.log(e);
-        let _protocolo = { ...protocolo };
-        _protocolo['empresa'] = e;
-        setProtocolo(_protocolo);
+    const onStatusDialogChange = (e: any) => {
+        setStatus(e)
     }
 
-    const onDepartamentoChange = (e: DropdownChangeParams) => {
+    const onStatusChange = (protocolo: Protocolo, destino?: string) => {
+        if (destino == 'next') {
+            if (protocolo.situacao == 'rascunho') {
+                setStatus('status-de-aprovacao');
+                setProtocolo(protocolo);
+                setStatusDialog(true);
+            } else {
+                setStatus(protocolo.situacao);
+                setProtocolo(protocolo);
+                setStatusDialog(true);    
+            }
+        }
+        
+        if (destino == null) {
+            setStatus(protocolo.situacao);
+            setProtocolo(protocolo);
+            setStatusDialog(true);
+        }
+    }
+
+    const onEmpresaChange = (e: any) => {
+        let _protocolo = { ...protocolo };
+        _protocolo['empresa'] = e as Empresa;
+        setProtocolo(_protocolo);
+    };
+
+    const onUnidadeChange = (e: any) => {
+        let _protocolo = { ...protocolo };
+        console.log(e);
+        _protocolo['unidade'] = e as Filial;
+        setProtocolo(_protocolo);
+    };
+
+    const onDepartamentoChange = (e: any) => {
         let _protocolo = { ...protocolo };
         _protocolo['departamento'] = e;
         setProtocolo(_protocolo);
     }
 
+    const onTipoProcessoChange = (e: any) => {
+        console.log('tipo-processo');
+        let _protocolo = { ...protocolo };
+        _protocolo['processo'] = e.value;
+        setProtocolo(_protocolo);
+    }
+
     const onInputChange = (e: any, name: keyof Protocolo) => {
         const val = (e.target && e.target?.value) || '';
+
         let _protocolo = { ...protocolo } as any;
         _protocolo[`${name}`] = val;
 
         setProtocolo(_protocolo);
+    }
+
+    const onDocumentoChange = (e: any, name: keyof Protocolo) => {
+        const val = (e.target && e.target?.value) || '';
+        let _protocolo = { ...protocolo } as any;
+        if (+val.length >= 14) {
+            fetch(`https://publica.cnpj.ws/cnpj/${val.replace(/\D/g, '')}`).then(res => {
+                if (res.ok) {
+                    res.json().then(data => {
+                        console.log(data);
+                        const { razao_social, estabelecimento: { cnpj } } = data;
+                        _protocolo.fornecedor = {
+                            razao_social,
+                            cnpj
+                        };
+                    });
+                }
+            }).catch(reason => {
+                console.log(reason);    
+            });
+        }
+
+        _protocolo[`${name}`] = val;
+        console.log(_protocolo);
+        setProtocolo(_protocolo);
+    }
+
+    const onSelectProtocolo = (e: Protocolo[]) => {
+        setSelectedProtocolos(e);
+    }
+
+    const onHandleUpload = (e: any) => {
+        console.log(e);
     }
 
     const leftToolbarTemplate = () => {
@@ -227,16 +389,44 @@ function Protocolos(props: any) {
         return (
             <>
                 <span className="p-column-title">Documento</span>
-                {rowData.origem}
+                <div>{ rowData.fornecedor?.razao_social }</div>
+                <div>{ rowData.origem }</div>
             </>
         );
     }
 
     const empresaBodyTemplate = (rowData: Protocolo) => {
+        const depto = departamentos.find(dep => dep.value == rowData.departamento);
+        
         return (
             <>
-                <span className="p-column-title">Empresa</span>
-                {rowData.empresa}
+                <div style={{'display': 'flex', 'flexDirection': 'column'}}>
+                    <b style={{'textTransform': 'capitalize', fontSize: '1.2em'}}>{rowData.empresa}</b>
+                    <div>
+                        <span><b>Unidade:</b></span> {rowData.unidade.razao}
+                    </div>
+                    <div>
+                        <span><b>Setor:</b></span> {depto?.label}
+                    </div>
+                </div>
+            </>
+        );
+    }
+
+    const processoBodyTemplate = (rowData: Protocolo) => {
+        if (rowData.processo == null) return <></>;
+        return (
+            <>
+                <span className="p-column-title">Processo</span>
+            </>
+        )
+    }
+
+    const unidadeBodyTemplate = (rowData: Protocolo) => {
+        return (
+            <>
+                <span className="p-column-title">Unidade</span>
+                {rowData.unidade ? 'Tem Unidade' : 'Não tem unidade'}
             </>
         );
     }
@@ -250,15 +440,72 @@ function Protocolos(props: any) {
         );
     }
 
-    const dtRegistroBodyTemplate = (rowData: Protocolo) => {
-        console.log(rowData.dt_registro);
+    const ordemCompraBodyTemplate = (rowData: Protocolo) => {
+        return (
+            <>
+                <span className="p-column-title">OC</span>
+                {rowData.compra_ordem}
+            </>
+        );
+    }
 
+    
+    const valorDocumentoBodyTemplate = (rowData: Protocolo) => {
+        return (
+            <>
+                <span className="p-column-title">Valor</span>
+                {rowData.documento_valor}
+            </>
+        );
+    }
+
+    
+    const vctoDocumentoBodyTemplate = (rowData: Protocolo) => {
+        return (
+            <>
+                <span className="p-column-title">Vencimento</span>
+                { rowData.documento_vcto && getParsedDate(rowData.documento_vcto)}
+            </>
+        );
+    }
+
+    const dtRegistroBodyTemplate = (rowData: Protocolo) => {
         return (
             <>
                 <span className="p-column-title">Registro</span>
-                <Calendar dateFormat="dd/mm/yy" value={rowData.dt_registro} ></Calendar>
+                { getParsedDate(rowData.dt_registro) }
             </>
         );
+    }
+
+    const situacaoBodyTemplace = (rowData: Protocolo) => {
+        return (
+            <>            
+                <div className="p-inputgroup">
+                    <Button className="p-button-outlined p-button-success" 
+                        style={{textTransform: 'capitalize', marginRight: '0.2em'}} 
+                        label={rowData.situacao}
+                        onClick={(e) => onStatusChange(rowData)}
+                    />
+                    <Button icon="pi pi-chevron-right" className="p-button-success" onClick={(e) => onStatusChange(rowData, 'next')}/>
+                </div>
+            </>
+        )
+    }
+
+    const filesTemplate = (file: File, props: any) => {
+        console.log(file, props);
+        filesToUpload.push(file);
+        return (
+            <>
+                {file.name}
+            </>
+        )
+    }
+
+    const selectProtocolo = (rowData: Protocolo) => {
+        console.log('selprot')
+        console.log(rowData);
     }
 
     const actionBodyTemplate = (rowData: Protocolo) => {
@@ -273,7 +520,6 @@ function Protocolos(props: any) {
 
     const header = (
         <div className="table-header">
-            <h5 className="p-m-0">Protocolos</h5>
             <span className="p-input-icon-left">
                 <i className="pi pi-search" />
                 <InputText type="search" onInput={(e: any) => setGlobalFilter(e.currentTarget.value)} placeholder="Pesquisa..." />
@@ -283,90 +529,178 @@ function Protocolos(props: any) {
 
     const protocoloDialogFooter = (
         <>
-            <Button label="Cancel" icon="pi pi-times" className="p-button-text" onClick={hideDialog} />
-            <Button label="Save" icon="pi pi-check" className="p-button-text" onClick={saveProtocolo} />
+            <Button label="Cancelar" icon="pi pi-times" className="p-button-text" onClick={hideDialog} />
+            <Button label="Salvar" icon="pi pi-check" className="p-button-text" onClick={saveProtocolo} />
+        </>
+    );
+    const statusDialogFooter = (
+        <>
+            <Button label="Cancelar" icon="pi pi-times" className="p-button-text" onClick={hideStatusDialog} />
+            <Button label="Salvar" icon="pi pi-check" className="p-button-text" onClick={saveStatus} />
         </>
     );
     const deleteProtocoloDialogFooter = (
         <>
-            <Button label="No" icon="pi pi-times" className="p-button-text" onClick={hideDeleteProtocoloDialog} />
-            <Button label="Yes" icon="pi pi-check" className="p-button-text" onClick={deleteProtocolo} />
+            <Button label="Não" icon="pi pi-times" className="p-button-text" onClick={hideDeleteProtocoloDialog} />
+            <Button label="Sim" icon="pi pi-check" className="p-button-text" onClick={deleteProtocolo} />
         </>
     );
     const deleteProductsDialogFooter = (
         <>
-            <Button label="No" icon="pi pi-times" className="p-button-text" onClick={hideDeleteProtocolosDialog} />
-            <Button label="Yes" icon="pi pi-check" className="p-button-text" onClick={deleteSelectedProtocolos} />
+            <Button label="Não" icon="pi pi-times" className="p-button-text" onClick={hideDeleteProtocolosDialog} />
+            <Button label="Sim" icon="pi pi-check" className="p-button-text" onClick={deleteSelectedProtocolos} />
         </>
     );
 
-    return (
-        <div className="p-grid crud-demo">
-            <div className="p-col-12">
-                <div className="card">
-                    <Toast ref={toast} />
-                    <Toolbar className="p-mb-4" left={leftToolbarTemplate} right={rightToolbarTemplate}></Toolbar>
-
-                    <DataTable ref={dt} value={protocolos} selection={selectedProtocolos} onSelectionChange={(e) => setSelectedProtocolos(e.value)}
-                        dataKey="id" paginator rows={10} rowsPerPageOptions={[5, 10, 25]} className="datatable-responsive"
-                        paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
-                        currentPageReportTemplate="Mostrando {first} até {last} de {totalRecords} protocolos"
-                        globalFilter={globalFilter} emptyMessage="Nenhum protocolo encontrado." header={header}
-                        style={{'min-width': '90vh'}}
-                    >
-                        <Column selectionMode="multiple" headerStyle={{ width: '3rem' }}></Column>
-                        <Column field="controle" header="Protocolo" sortable body={controleBodyTemplate}></Column>
-                        <Column field="dt_registro" header="Registro" sortable body={dtRegistroBodyTemplate}></Column>
-                        <Column field="origem" header="Documento" sortable body={origemBodyTemplate}></Column>
-                        <Column field="empresa" header="Empresa" sortable body={empresaBodyTemplate}></Column>
-                        <Column field="departamento" header="Departamento" sortable body={departamentoBodyTemplate}></Column>
-                        <Column body={actionBodyTemplate}></Column>
-                    </DataTable>
-
-                    <Dialog position="top" visible={protocoloDialog} style={{ width: '80vw' }} header="Criar/editar" modal className="p-fluid" footer={protocoloDialogFooter} onHide={hideDialog}>
-                        <div className="p-field">
-                            <label htmlFor="origem">Origem</label>
-                            <InputText id="origem" value={protocolo.origem} onChange={(e) => onInputChange(e, 'origem')} required autoFocus className={classNames({ 'p-invalid': submitted && !protocolo.origem })} />
-                            {submitted && !protocolo.origem && <small className="p-invalid">Origem é obrigatório.</small>}
-                        </div>
-                        <div className="p-field p-col-6">
-                            <label className="p-mb-3">Empresa</label>
-                            <Dropdown value={protocolo.empresa} options={empresas} onChange={(e: DropdownChangeParams) => onEmpresaChange(e.value)} placeholder="Selecione a empresa"/>
-                        </div>
-                        <div className="p-field p-col-6">
-                            <label className="p-mb-3">Departamento</label>
-                            <Dropdown value={protocolo.departamento} options={departamentos} onChange={(e: DropdownChangeParams) => onDepartamentoChange(e.value)} placeholder="Selecione o departamento"/>
-                        </div>
-                        <div className="p-field">
-                            <label htmlFor="origem">Arquivos</label>
-                            <FileUpload mode="basic" maxFileSize={1000000} name="filesToUpload" chooseLabel="Arquivos" className="p-mr-2 p-d-inline-block" multiple accept="application/pdf" />
-                            <div>
-                                { 
-                                    filesToUpload.map((fl) => {
-                                        return <div>{fl}</div>;
-                                    })
-                                }
+    if (!!session && !!session?.user) {
+        return (
+            <>
+                <Header session={session}></Header>
+                <main>
+                    <div className="p-grid grid-demo content">
+                        <div className="p-col-12">
+                            <div className="card">
+                                <Toast ref={toast} />
+                                <Toolbar className="p-mb-4" left={leftToolbarTemplate} right={rightToolbarTemplate}></Toolbar>
+            
+                                <DataTable ref={dt} value={protocolos} selection={selectedProtocolos} onSelectionChange={(e) => onSelectProtocolo(e.value)}
+                                    dataKey="id" paginator rows={10} rowsPerPageOptions={[5, 10, 25]} className="datatable-responsive"
+                                    paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+                                    currentPageReportTemplate="Mostrando {first} até {last} de {totalRecords} protocolos"
+                                    globalFilter={globalFilter} emptyMessage="Nenhum protocolo encontrado." header={header}
+                                    style={{minHeigth: '90vh'}}
+                                >
+                                    <Column selectionMode="multiple" headerStyle={{ width: '3rem' }}></Column>
+                                    <Column field="situacao" header="Status" sortable body={situacaoBodyTemplace}></Column>
+                                    <Column field="controle" header="Protocolo" sortable body={controleBodyTemplate}></Column>
+                                    <Column field="dt_registro" header="Registro" sortable body={dtRegistroBodyTemplate}></Column>
+                                    <Column field="origem" header="Fornecedor" sortable body={origemBodyTemplate}></Column>
+                                    <Column field="empresa" header="Empresa" sortable body={empresaBodyTemplate}></Column>
+                                    <Column field="processo" header="Processo" sortable body={processoBodyTemplate}></Column>
+                                    <Column field="compra_ordem" header="OC" sortable body={ordemCompraBodyTemplate}></Column>
+                                    <Column field="documento_valor" header="Valor" sortable body={valorDocumentoBodyTemplate}></Column>
+                                    <Column field="documento_vcto" header="Vencimento" sortable body={vctoDocumentoBodyTemplate}></Column>
+                                    <Column body={actionBodyTemplate}></Column>
+                                </DataTable>
                             </div>
                         </div>
-                    </Dialog>
+                    </div>
+                </main>
 
-                    <Dialog visible={deleteProtocoloDialog} style={{ width: '450px' }} header="Confirm" modal footer={deleteProtocoloDialogFooter} onHide={hideDeleteProtocoloDialog}>
-                        <div className="confirmation-content">
-                            <i className="pi pi-exclamation-triangle p-mr-3" style={{ fontSize: '2rem' }} />
-                            {protocolo && <span>Tem certeza que deseja excluir o protocolo <b>{protocolo.controle}</b>?</span>}
+                
+                
+                <Dialog 
+                    className="p-fluid" 
+                    position="bottom" 
+                    visible={statusDialog} 
+                    style={{ width: '80vw' }} 
+                    header="Mudar status" 
+                    modal 
+                    footer={statusDialogFooter} 
+                    onHide={hideStatusDialog}
+                >
+                    <div className='p-grid'>
+                        <div className="p-row">
+                            <div className="p-col-2">
+                                <label className="p-mb-3">Status</label>
+                                <Dropdown value={status} options={situacoesUsuario} onChange={(e: DropdownChangeParams) => onStatusDialogChange(e.value)} 
+                                    placeholder="Selecione um status"
+                                />
+                            </div>
+                            <div className="p-col-2">
+                                <label className="p-mb-3">Comentario</label>
+                                <InputText></InputText>
+                            </div>
                         </div>
-                    </Dialog>
+                    </div>
+                </Dialog>
 
-                    <Dialog visible={deleteProtocolosDialog} style={{ width: '450px' }} header="Confirm" modal footer={deleteProtocoloDialogFooter} onHide={hideDeleteProtocolosDialog}>
-                        <div className="confirmation-content">
-                            <i className="pi pi-exclamation-triangle p-mr-3" style={{ fontSize: '2rem' }} />
-                            {protocolo && <span>Tem certeza que deseja excluir os protocolos selecionados?</span>}
+                <Dialog 
+                    className="p-fluid" 
+                    position="bottom" 
+                    visible={protocoloDialog} 
+                    style={{ width: '80vw' }} 
+                    header="Criar/editar" 
+                    modal 
+                    footer={protocoloDialogFooter} 
+                    onHide={hideDialog}
+                >
+                    <div className="p-grid">
+                        <div className="p-row">
+                            <div className="p-field">
+                                <label htmlFor="origem">Fornecedor (CNPJ/CPJ)</label>
+                                <div><b> { protocolo?.fornecedor?.razao_social } </b></div>
+                                <InputText id="origem" value={protocolo.origem} onChange={(e) => onDocumentoChange(e, 'origem')} required autoFocus className={classNames({ 'p-invalid': submitted && !protocolo.origem })} />
+                                {submitted && !protocolo.origem && <small className="p-invalid">Origem é obrigatório.</small>}
+                            </div>
+                            <div className="col-2">
+                                <label className="p-mb-3">Empresa</label>
+                                <Dropdown value={protocolo.empresa} options={empresas} onChange={(e: DropdownChangeParams) => onEmpresaChange(e.value)} placeholder="Selecione a empresa"/>
+                            </div>
+                            <div className="col-2">
+                                <label className="p-mb-3">Unidade</label>
+                                <Dropdown value={protocolo.unidade} options={protocolo.empresa?.filiais?.map(filial => { return {value: filial.cnpj, label: filial.razao }})} onChange={(e) => onUnidadeChange(e.value)} placeholder="Selecione a unidade"/>
+                            </div>
+                            <div className="p-field p-col-6">
+                                <label className="p-mb-3">Setores</label>
+                                <Dropdown value={protocolo.departamento} options={departamentos} onChange={(e: DropdownChangeParams) => onDepartamentoChange(e.value)} placeholder="Selecione o departamento"/>
+                            </div>
+                            <div className="p-field p-col-6">
+                                <label className="p-mb-3">Tipo Processo</label>
+                                <Dropdown value={protocolo.processo} options={processos} onChange={(e: DropdownChangeParams) => onTipoProcessoChange(e)} placeholder="Selecione o tipo de processo"/>
+                            </div>
+                            <div className="p-field">
+                                <label htmlFor="origem">Ordem Compra (OC)</label>
+                                <InputNumber value={protocolo.compra_ordem} onValueChange={(e) => onInputChange(e, 'compra_ordem')}  mode="decimal" autoFocus/>
+                            </div>
+                            <div className="p-field">
+                                <label htmlFor="origem">Valor</label>
+                                <InputText id="origem" value={protocolo.documento_valor} onChange={(e) => onInputChange(e, 'documento_valor')} autoFocus />
+                            </div>
+                            <div className="p-field">
+                                <label htmlFor="origem">Vencimento</label>
+                                <Calendar id="origem" value={protocolo.documento_vcto} onChange={(e) => onInputChange(e, 'documento_vcto')} />
+                            </div>
+                            <div className="p-field">
+                                <label htmlFor="origem">Arquivos</label>
+                                <FileUpload 
+                                    maxFileSize={1000000} 
+                                    url='./api/storage/protocolos'
+                                    name="filesToUpload"
+                                    itemTemplate={filesTemplate}
+                                    chooseLabel="Arquivos" 
+                                    className="p-mr-2 p-d-inline-block" 
+                                    multiple 
+                                    accept="application/pdf"
+                                    uploadHandler={(e: any) => {onHandleUpload(e)}}
+                                />
+                            </div>
                         </div>
-                    </Dialog>
-                </div>
-            </div>
-        </div>
-    );
+                    </div>
+                </Dialog>
+
+                <Dialog visible={deleteProtocoloDialog} style={{ width: '450px' }} header="Confirm" modal footer={deleteProtocoloDialogFooter} onHide={hideDeleteProtocoloDialog}>
+                    <div className="confirmation-content">
+                        <i className="pi pi-exclamation-triangle p-mr-3" style={{ fontSize: '2rem' }} />
+                        {protocolo && <span>Tem certeza que deseja excluir o protocolo <b>{protocolo.controle}</b>?</span>}
+                    </div>
+                </Dialog>
+
+                <Dialog visible={deleteProtocolosDialog} style={{ width: '450px' }} header="Confirm" modal footer={deleteProtocoloDialogFooter} onHide={hideDeleteProtocolosDialog}>
+                    <div className="confirmation-content">
+                        <i className="pi pi-exclamation-triangle p-mr-3" style={{ fontSize: '2rem' }} />
+                        {protocolo && <span>Tem certeza que deseja excluir os protocolos selecionados?</span>}
+                    </div>
+                </Dialog>
+            </>
+        );
+    } else {
+        return (
+            <>
+                <Header session={session}></Header>
+            </>
+        );
+    }
 }
 
 export default Protocolos

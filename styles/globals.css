@@ -21,14 +21,30 @@ label {
 }
 
 .header {
-    color: #fff;
     background-color: #dcbb5b;
-    width: 100vw;
-    height: 60px;
+    display: flex;
     align-items: center;
-    justify-items: center;
     align-content: center;
     justify-content: center;
+    height: 60px;
+    width: 100vw;
+}
+
+/* Page content */
+.content {
+    padding-top: 50px;
+}
+  
+/* The sticky class is added to the header with JS when it reaches its scroll position */
+.sticky {
+    position: fixed;
+    top: 0;
+    width: 100%
+}
+
+/* Add some top padding to the page content to prevent sudden quick movement (as the header gets a new position at the top of the page (position:fixed and top:0) */
+.sticky+.content {
+    padding-top: 102px;
 }
 
 .footer {
@@ -48,8 +64,7 @@ label {
 }
 
 .header a {
-    color: #fff;
-}
+    color: #fff;}
 
 .logo-global {
     display: block;
